@@ -1,0 +1,6 @@
+services:
+  moto:
+    image: motoserver/moto:latest
+    container_name: moto
+    ports:
+      - "5000:5000"
