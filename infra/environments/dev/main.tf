@@ -21,12 +21,12 @@ provider "aws" {
   s3_use_path_style           = true
 
   endpoints {
-    s3    = "http://localhost:5000"
-    ec2   = "http://localhost:5000"
-    iam   = "http://localhost:5000"
-    elbv2 = "http://localhost:5000"
-    rds   = "http://localhost:5000"
-    sts   = "http://localhost:5000"
+    s3          = "http://localhost:5000"
+    ec2         = "http://localhost:5000"
+    iam         = "http://localhost:5000"
+    elbv2       = "http://localhost:5000"
+    rds         = "http://localhost:5000"
+    sts         = "http://localhost:5000"
     autoscaling = "http://localhost:5000"
     cloudwatch  = "http://localhost:5000"
     sns         = "http://localhost:5000"
@@ -74,11 +74,11 @@ output "alb_dns_name" {
 module "asg" {
   source = "../../modules/asg"
 
-  environment        = "dev"
-  vpc_id             = module.network.vpc_id
-  private_subnet_ids = module.network.private_subnet_ids
-  alb_sg_id          = module.alb.alb_sg_id
-  target_group_arn   = module.alb.target_group_arn
+  environment           = "dev"
+  vpc_id                = module.network.vpc_id
+  private_subnet_ids    = module.network.private_subnet_ids
+  alb_sg_id             = module.alb.alb_sg_id
+  target_group_arn      = module.alb.target_group_arn
   instance_profile_name = module.iam.instance_profile_name
 }
 
