@@ -29,6 +29,7 @@ provider "aws" {
     sts   = "http://localhost:5000"
     autoscaling = "http://localhost:5000"
     cloudwatch  = "http://localhost:5000"
+    sns         = "http://localhost:5000"
   }
 }
 
@@ -78,6 +79,7 @@ module "asg" {
   private_subnet_ids = module.network.private_subnet_ids
   alb_sg_id          = module.alb.alb_sg_id
   target_group_arn   = module.alb.target_group_arn
+  instance_profile_name = module.iam.instance_profile_name
 }
 
 output "asg_name" {
@@ -104,4 +106,33 @@ module "rds" {
 output "db_endpoint" {
   value     = module.rds.db_endpoint
   sensitive = true
+}
+
+# ---------- S3 ----------
+module "s3" {
+  source = "../../modules/s3"
+
+  environment = "dev"
+}
+
+# ---------- IAM ----------
+module "iam" {
+  source = "../../modules/iam"
+
+  environment    = "dev"
+  app_bucket_arn = module.s3.bucket_arn
+}
+
+# ---------- Monitoring ----------
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  environment   = "dev"
+  asg_name      = module.asg.asg_name
+  db_identifier = module.rds.db_identifier
+  alert_email   = "devops@example.com"
+}
+
+output "app_bucket" {
+  value = module.s3.bucket_id
 }

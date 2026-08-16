@@ -34,6 +34,13 @@ resource "aws_launch_template" "app" {
 
   vpc_security_group_ids = [aws_security_group.app.id]
 
+  dynamic "iam_instance_profile" {
+    for_each = var.instance_profile_name != "" ? [1] : []
+    content {
+      name = var.instance_profile_name
+    }
+  }
+
   user_data = base64encode(<<-USERDATA
 #!/bin/bash
 yum install -y python3 || apt-get install -y python3
