@@ -1,20 +1,24 @@
 # Highly Available Web Platform on AWS
 
-Production-like highly available web platform described with Terraform and validated locally against mocked AWS APIs (MotoServer).
+Production-like highly available web platform described with Terraform and validated locally against mocked AWS APIs (MotoServer). Every change is validated in CI before merge.
 
-## Overview
+## Architecture
+
+Rendered diagram: docs/architecture.md
 
 - VPC with public/private subnets across 2 Availability Zones
-- Application Load Balancer + Auto Scaling Group
-- RDS PostgreSQL, S3, IAM, CloudWatch
-- CI/CD validation via GitHub Actions
-
-The Terraform code targets real AWS APIs. For free local development and testing we use MotoServer (open-source AWS API emulator), because LocalStack Community Edition does not include ELBv2 and RDS.
+- Application Load Balancer in public subnets
+- Auto Scaling Group with the app in private subnets
+- RDS PostgreSQL in private subnets, reachable only from the app
+- NAT Gateway for outbound traffic from private subnets
+- S3 bucket with encryption and fully blocked public access
+- IAM least-privilege role and instance profile for the app
+- CloudWatch alarms with SNS email notifications
 
 ## Tech Stack
 
-- Terraform (Infrastructure as Code)
-- AWS (EC2, VPC, ELBv2, RDS, S3, IAM, CloudWatch)
+- Terraform (Infrastructure as Code, modularized)
+- AWS: VPC, EC2/ASG, ALB, RDS, S3, IAM, CloudWatch, SNS
 - MotoServer (local AWS API emulation)
 - Docker / Docker Compose
 - GitHub Actions (CI/CD)
@@ -23,28 +27,47 @@ The Terraform code targets real AWS APIs. For free local development and testing
 ## Project Structure
 
     aws-ha-web-platform/
-    ├── infra/              # Terraform code
-    │   ├── modules/        # Reusable modules (network, alb, asg, rds, s3, iam)
+    ├── infra/
+    │   ├── modules/        # network, alb, asg, rds, s3, iam, monitoring
     │   ├── environments/   # dev / staging / prod
-    │   └── global/         # Global resources
-    ├── moto/               # Local AWS emulator (docker compose)
-    ├── app/                # Demo application
-    ├── scripts/            # Automation scripts
-    ├── diagrams/           # Architecture diagrams
-    ├── docs/               # Documentation and runbooks
-    └── .github/workflows/  # CI/CD pipelines
+    │   └── global/
+    ├── moto/               # local AWS emulator
+    ├── app/                # demo application
+    ├── scripts/            # automation scripts
+    ├── diagrams/
+    ├── docs/               # architecture and runbooks
+    └── .github/workflows/  # CI/CD
 
 ## Quick Start
 
     ./scripts/moto-up.sh
-    aws configure --profile moto   # test / test / us-east-1 / json
-    aws --profile moto --endpoint-url=http://localhost:5000 s3 ls
-    ./scripts/moto-down.sh
+    export TF_VAR_db_password=dev-password-123
+    cd infra/environments/dev
+    terraform init
+    terraform plan
+    terraform apply
+    terraform output
+
+## CI/CD
+
+- On pull request: fmt, init, validate, plan (nothing is applied)
+- On merge to main: plan, apply, smoke tests
+- Runs against a Moto service container, no real cloud account needed
+
+## Security
+
+- App and database live in private subnets
+- Security group chain: internet -> ALB (80/443) -> app (8080) -> db (5432)
+- S3: public access blocked, server-side encryption, versioning
+- IAM: least-privilege read-only policy for the app bucket
+- Secrets are passed via environment variables; terraform state is gitignored
 
 ## Design Decisions
 
-- MotoServer over LocalStack: LocalStack Community Edition gates ELBv2 and RDS behind a Pro license; Moto provides them free and open-source.
-- The same Terraform modules can target real AWS by switching credentials and endpoints.
+- MotoServer instead of LocalStack: LocalStack Community gates ELBv2 and RDS behind a Pro license
+- Reusable modules with per-environment configuration (dev/staging/prod)
+- Provider is configured at the environment level, keeping modules cloud-agnostic
+- The same code targets real AWS by switching credentials and endpoints
 
 ## Status
 
