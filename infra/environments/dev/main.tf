@@ -83,3 +83,25 @@ module "asg" {
 output "asg_name" {
   value = module.asg.asg_name
 }
+
+# ---------- RDS ----------
+variable "db_password" {
+  description = "PostgreSQL master password"
+  type        = string
+  sensitive   = true
+}
+
+module "rds" {
+  source = "../../modules/rds"
+
+  environment        = "dev"
+  vpc_id             = module.network.vpc_id
+  private_subnet_ids = module.network.private_subnet_ids
+  app_sg_id          = module.asg.app_sg_id
+  db_password        = var.db_password
+}
+
+output "db_endpoint" {
+  value     = module.rds.db_endpoint
+  sensitive = true
+}
