@@ -53,3 +53,16 @@ output "public_subnet_ids" {
 output "private_subnet_ids" {
   value = module.network.private_subnet_ids
 }
+
+# ---------- ALB ----------
+module "alb" {
+  source = "../../modules/alb"
+
+  environment       = "dev"
+  vpc_id            = module.network.vpc_id
+  public_subnet_ids = module.network.public_subnet_ids
+}
+
+output "alb_dns_name" {
+  value = module.alb.alb_dns_name
+}
